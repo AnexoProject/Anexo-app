@@ -24,7 +24,7 @@ export default async function AnnexeDetailPage({ params }: { params: Promise<{ i
   const { data: reservations } = await supabase
     .from("reservations")
     .select(
-      "*, reservation_lines(*, annexe_items(name), annexe_item_plans(label, unit)), reservation_equipment_lines(*, annexe_equipment(name))"
+      "id, client_name, num_people, start_date, total, status, comment, reservation_lines(*, annexe_items(name), annexe_item_plans(label, unit)), reservation_equipment_lines(*, annexe_equipment(name))"
     )
     .eq("annexe_id", id)
     .order("created_at", { ascending: false })

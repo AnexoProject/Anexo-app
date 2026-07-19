@@ -14,6 +14,7 @@ export default async function HomeDashboard() {
     .from("reservations")
     .select("*, annexes(label, icon)")
     .eq("start_date", today)
+    .neq("status", "terminee")
     .order("created_at", { ascending: false });
 
   const { data: reservationsWeek } = await supabase
@@ -26,6 +27,12 @@ export default async function HomeDashboard() {
     .select("id, label, icon")
     .is("deleted_at", null)
     .order("slot_number");
+
+  const { data: tasksToday } = await supabase
+    .from("cleaning_tasks")
+    .select("*, staff_members(name)")
+    .eq("task_date", today)
+    .order("start_time", { ascending: true });
 
   const caToday = (reservationsToday ?? []).reduce((sum, r) => sum + Number(r.total), 0);
   const caWeek = (reservationsWeek ?? []).reduce((sum, r) => sum + Number(r.total), 0);
@@ -89,9 +96,27 @@ export default async function HomeDashboard() {
           </div>
 
           <div>
-            <div className="font-black text-xs text-[#5B6B80] mb-3">TÂCHES À VENIR — LOCATIONS &amp; MÉNAGE</div>
-            <div className="bg-white border border-dashed border-[#DCE3EA] rounded-xl p-6 text-center text-sm text-[#5B6B80]">
-              Le planning des tâches (ménages, entretien, préparation des locations) arrive dans une prochaine version.
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-black text-xs text-[#5B6B80]">MÉNAGE DU JOUR</div>
+              <Link href="/dashboard/menage" className="text-xs font-semibold text-[#2473BA]">Voir le planning →</Link>
+            </div>
+            <div className="space-y-2">
+              {(!tasksToday || tasksToday.length === 0) && (
+                <div className="bg-white border border-dashed border-[#DCE3EA] rounded-xl p-6 text-center text-sm text-[#5B6B80]">
+                  Aucune tâche de ménage planifiée aujourd&apos;hui.
+                </div>
+              )}
+              {tasksToday?.map((t) => (
+                <div key={t.id} className={`bg-white border border-[#DCE3EA] rounded-xl p-3 flex items-center justify-between ${t.status === "fait" ? "opacity-50" : ""}`}>
+                  <div className="flex items-center gap-3">
+                    <div className="font-mono text-xs text-[#5B6B80] w-12">{t.start_time.slice(0, 5)}</div>
+                    <div>
+                      <div className="text-sm font-semibold text-[#1A2B4B]">{t.location_label}</div>
+                      <div className="text-xs text-[#5B6B80]">{t.duration_minutes} min · {(t.staff_members as unknown as { name: string } | null)?.name ?? "Non assigné"}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

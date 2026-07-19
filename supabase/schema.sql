@@ -86,6 +86,8 @@ create table reservations (
   is_family boolean not null default false,
   start_date date not null,
   total numeric(10,2) not null default 0,
+  status text not null default 'active' check (status in ('active', 'terminee')),
+  comment text,
   created_at timestamptz not null default now(),
   created_by uuid references profiles(id)
 );
@@ -121,6 +123,30 @@ create table reservation_equipment_lines (
   line_total numeric(10,2) not null
 );
 
+-- ----------------------------------------------------------------------------
+-- 8. MÉNAGE — salariés et tâches planifiées
+-- ----------------------------------------------------------------------------
+create table staff_members (
+  id uuid primary key default gen_random_uuid(),
+  establishment_id uuid not null references establishments(id) on delete cascade,
+  name text not null,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table cleaning_tasks (
+  id uuid primary key default gen_random_uuid(),
+  establishment_id uuid not null references establishments(id) on delete cascade,
+  location_label text not null,
+  task_date date not null,
+  start_time time not null,
+  duration_minutes int not null default 30,
+  staff_id uuid references staff_members(id) on delete set null,
+  notes text,
+  status text not null default 'a_faire' check (status in ('a_faire', 'fait')),
+  created_at timestamptz not null default now()
+);
+
 -- ============================================================================
 -- SÉCURITÉ : Row Level Security — chaque établissement ne voit que ses données
 -- ============================================================================
@@ -133,6 +159,8 @@ alter table reservations enable row level security;
 alter table reservation_lines enable row level security;
 alter table annexe_equipment enable row level security;
 alter table reservation_equipment_lines enable row level security;
+alter table staff_members enable row level security;
+alter table cleaning_tasks enable row level security;
 
 create policy "own establishment" on establishments
   for select using (id = public.current_establishment_id());
@@ -180,6 +208,12 @@ create policy "tenant isolation - reservation equipment lines" on reservation_eq
   for all using (
     reservation_id in (select id from reservations where establishment_id = public.current_establishment_id())
   );
+
+create policy "tenant isolation - staff" on staff_members
+  for all using (establishment_id = public.current_establishment_id());
+
+create policy "tenant isolation - cleaning tasks" on cleaning_tasks
+  for all using (establishment_id = public.current_establishment_id());
 
 -- ============================================================================
 -- FIN DU SCHÉMA

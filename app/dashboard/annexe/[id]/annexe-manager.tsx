@@ -29,6 +29,8 @@ type Reservation = {
   num_people: number;
   start_date: string;
   total: number;
+  status: "active" | "terminee";
+  comment: string | null;
   reservation_lines: ReservationLine[];
   reservation_equipment_lines: ReservationEquipmentLine[];
 };
@@ -367,6 +369,7 @@ function ReservationsPanel({
   const [clientName, setClientName] = useState("");
   const [numPeople, setNumPeople] = useState(1);
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [comment, setComment] = useState("");
   const [cart, setCart] = useState<{ itemId: string; planId: string; qty: number; duration: number }[]>([]);
   const [equipmentQty, setEquipmentQty] = useState<Record<string, number>>({});
   const [error, setError] = useState("");
@@ -416,6 +419,7 @@ function ReservationsPanel({
         client_name: clientName.trim(),
         num_people: numPeople,
         start_date: startDate,
+        comment: comment.trim() || null,
         total,
       })
       .select()
@@ -480,17 +484,25 @@ function ReservationsPanel({
     setClientName("");
     setCart([]);
     setEquipmentQty({});
+    setComment("");
     onCreated();
   }
 
   const [editingReservationId, setEditingReservationId] = useState<string | null>(null);
+  const [showTerminees, setShowTerminees] = useState(false);
 
   async function deleteReservation(id: string) {
     await supabase.from("reservations").delete().eq("id", id);
     setLocalReservations((r) => r.filter((x) => x.id !== id));
   }
 
-  async function updateReservation(id: string, patch: { client_name: string; num_people: number; start_date: string }) {
+  async function toggleReservationStatus(id: string, current: "active" | "terminee") {
+    const next = current === "active" ? "terminee" : "active";
+    await supabase.from("reservations").update({ status: next }).eq("id", id);
+    setLocalReservations((r) => r.map((x) => (x.id === id ? { ...x, status: next } : x)));
+  }
+
+  async function updateReservation(id: string, patch: { client_name: string; num_people: number; start_date: string; comment: string | null }) {
     await supabase.from("reservations").update(patch).eq("id", id);
     setLocalReservations((r) => r.map((x) => (x.id === id ? { ...x, ...patch } : x)));
     setEditingReservationId(null);
@@ -589,6 +601,15 @@ function ReservationsPanel({
           </>
         )}
 
+        <label className="block text-xs font-semibold text-[#5B6B80] mb-1 mt-4">Commentaire (facultatif)</label>
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          rows={2}
+          placeholder="Ex : arrivée tardive prévue, vélo taille S demandé..."
+          className="w-full px-3 py-2 border border-[#DCE3EA] rounded-lg text-sm outline-none focus:border-[#2473BA] mb-3 resize-none"
+        />
+
         {error && <div className="text-sm text-[#C0392B] bg-[#FBE1DC] rounded-lg px-3 py-2 mb-3">{error}</div>}
 
         <div className="flex justify-between items-center mb-3">
@@ -605,13 +626,22 @@ function ReservationsPanel({
         <WeekAheadView reservations={localReservations} />
 
         <div className="space-y-3">
-        <div className="font-black text-sm text-[#1A2B4B]">RÉSERVATIONS ({localReservations.length})</div>
+        <div className="flex items-center justify-between">
+          <div className="font-black text-sm text-[#1A2B4B]">
+            RÉSERVATIONS ({(showTerminees ? localReservations : localReservations.filter((r) => r.status !== "terminee")).length})
+          </div>
+          <button onClick={() => setShowTerminees((s) => !s)} className="text-xs font-semibold text-[#5B6B80] hover:text-[#2473BA]">
+            {showTerminees ? "Masquer les terminées" : "Voir aussi les terminées"}
+          </button>
+        </div>
         {localReservations.length === 0 && (
           <div className="bg-white border border-[#DCE3EA] rounded-xl p-6 text-center text-sm text-[#5B6B80]">
             Aucune réservation pour le moment.
           </div>
         )}
-        {localReservations.map((r) =>
+        {localReservations
+          .filter((r) => showTerminees || r.status !== "terminee")
+          .map((r) =>
           editingReservationId === r.id ? (
             <ReservationEditCard
               key={r.id}
@@ -620,15 +650,27 @@ function ReservationsPanel({
               onCancel={() => setEditingReservationId(null)}
             />
           ) : (
-            <div key={r.id} className="bg-white border border-[#DCE3EA] rounded-xl p-4 group">
+            <div key={r.id} className={`bg-white border rounded-xl p-4 group ${r.status === "terminee" ? "border-[#DCE3EA] opacity-60" : "border-[#DCE3EA]"}`}>
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <div className="font-semibold text-sm text-[#1A2B4B]">{r.client_name}</div>
+                  <div className="font-semibold text-sm text-[#1A2B4B] flex items-center gap-2">
+                    {r.client_name}
+                    {r.status === "terminee" && (
+                      <span className="text-[10px] font-semibold bg-[#F4F7FA] text-[#5B6B80] px-2 py-0.5 rounded-full">terminée</span>
+                    )}
+                  </div>
                   <div className="text-xs text-[#5B6B80]">{r.start_date} · {r.num_people} pers.</div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="font-mono text-sm">{fmtEUR(r.total)}</div>
                   <div className="opacity-0 group-hover:opacity-100 flex gap-2">
+                    <button
+                      onClick={() => toggleReservationStatus(r.id, r.status)}
+                      title={r.status === "active" ? "Marquer comme terminée" : "Réactiver"}
+                      className="text-xs text-[#5B6B80] hover:text-[#1F8A4C]"
+                    >
+                      {r.status === "active" ? "✅" : "↺"}
+                    </button>
                     <button onClick={() => setEditingReservationId(r.id)} className="text-xs text-[#5B6B80] hover:text-[#2473BA]">
                       ✏️
                     </button>
@@ -643,7 +685,7 @@ function ReservationsPanel({
                   </div>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 mb-2">
                 {r.reservation_lines.map((line) => (
                   <span key={line.id} className="text-xs bg-[#F4F7FA] px-2 py-1 rounded">
                     {line.qty}× {line.annexe_items?.name} · {line.duration} {line.annexe_item_plans?.unit}
@@ -655,6 +697,9 @@ function ReservationsPanel({
                   </span>
                 ))}
               </div>
+              {r.comment && (
+                <div className="text-xs text-[#5B6B80] italic bg-[#F4F7FA] rounded-lg px-2.5 py-1.5">💬 {r.comment}</div>
+              )}
             </div>
           )
         )}
@@ -712,12 +757,13 @@ function ReservationEditCard({
   onCancel,
 }: {
   reservation: Reservation;
-  onSave: (patch: { client_name: string; num_people: number; start_date: string }) => void;
+  onSave: (patch: { client_name: string; num_people: number; start_date: string; comment: string | null }) => void;
   onCancel: () => void;
 }) {
   const [clientName, setClientName] = useState(reservation.client_name);
   const [numPeople, setNumPeople] = useState(reservation.num_people);
   const [startDate, setStartDate] = useState(reservation.start_date);
+  const [comment, setComment] = useState(reservation.comment ?? "");
 
   return (
     <div className="bg-white border-2 border-[#2473BA] rounded-xl p-4">
@@ -729,9 +775,16 @@ function ReservationEditCard({
         <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-2 py-1.5 border border-[#DCE3EA] rounded text-sm" />
         <input type="number" min={1} value={numPeople} onChange={(e) => setNumPeople(Number(e.target.value))} className="px-2 py-1.5 border border-[#DCE3EA] rounded text-sm" />
       </div>
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        rows={2}
+        placeholder="Commentaire (facultatif)"
+        className="w-full px-2 py-1.5 border border-[#DCE3EA] rounded text-sm mb-3 resize-none"
+      />
       <div className="flex gap-2">
         <button
-          onClick={() => onSave({ client_name: clientName.trim() || reservation.client_name, num_people: numPeople, start_date: startDate })}
+          onClick={() => onSave({ client_name: clientName.trim() || reservation.client_name, num_people: numPeople, start_date: startDate, comment: comment.trim() || null })}
           className="flex-1 bg-[#2473BA] text-white text-xs font-semibold rounded-lg py-2"
         >
           Enregistrer
