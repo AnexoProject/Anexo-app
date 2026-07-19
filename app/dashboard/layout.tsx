@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import LogoutButton from "./logout-button";
 
@@ -21,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-[#F4F7FA]">
       <header className="bg-[#1A2B4B] px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+        <div className="max-w-5xl mx-auto flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <div className="font-black text-lg text-white">
               anex<span className="text-[#2473BA]">o</span>
@@ -30,6 +31,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <span className="text-xs text-[#AEB9CC] border-l border-white/20 pl-3">{establishmentName}</span>
             )}
           </div>
+          <nav className="flex gap-1 p-1 rounded-xl bg-white/10">
+            <Link href="/dashboard" className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white hover:bg-white/10">
+              Accueil
+            </Link>
+            <Link href="/dashboard/annexes" className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white hover:bg-white/10">
+              Annexes
+            </Link>
+            <Link href="/dashboard/finance" className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white hover:bg-white/10">
+              Finance
+            </Link>
+          </nav>
           <div className="flex items-center gap-4">
             <span className="text-xs text-[#AEB9CC]">{profile?.full_name}</span>
             <LogoutButton />
