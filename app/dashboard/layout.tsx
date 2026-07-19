@@ -36,7 +36,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               Accueil
             </Link>
             <Link href="/dashboard/annexes" className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white hover:bg-white/10">
-              Annexes
+              Rubriques
             </Link>
             <Link href="/dashboard/finance" className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white hover:bg-white/10">
               Finance

@@ -59,7 +59,7 @@ export default function AnnexeGrid({
       .insert({
         establishment_id: profile.establishment_id,
         slot_number: nextSlot,
-        label: `Annexe ${nextSlot}`,
+        label: `Rubrique ${nextSlot}`,
         icon: "📦",
       })
       .select()
@@ -128,7 +128,7 @@ export default function AnnexeGrid({
                   </button>
                 </div>
               </div>
-              <div className="text-xs text-[#5B6B80] mb-1 font-mono">Annexe {annexe.slot_number}</div>
+              <div className="text-xs text-[#5B6B80] mb-1 font-mono">Rubrique {annexe.slot_number}</div>
               <div className="font-semibold text-[#1A2B4B] mb-4">{annexe.label}</div>
               <Link href={`/dashboard/annexe/${annexe.id}`} className="text-sm font-semibold text-[#2473BA]">
                 Gérer →
@@ -143,7 +143,7 @@ export default function AnnexeGrid({
           className="border-2 border-dashed border-[#DCE3EA] rounded-xl p-5 flex flex-col items-center justify-center text-[#5B6B80] hover:border-[#2473BA] hover:text-[#2473BA] transition-colors min-h-[140px]"
         >
           <span className="text-2xl mb-2">＋</span>
-          <span className="text-sm font-semibold">{busy ? "Création..." : "Ajouter une annexe"}</span>
+          <span className="text-sm font-semibold">{busy ? "Création..." : "Ajouter une rubrique"}</span>
         </button>
       </div>
 

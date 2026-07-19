@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import FinanceCharts from "../../finance/finance-charts";
 
 type Plan = { id: string; item_id: string; label: string; unit: string; price: number };
 type Item = { id: string; annexe_id: string; name: string; stock: number; annexe_item_plans: Plan[] };
@@ -53,7 +54,7 @@ export default function AnnexeManager({
   const [items, setItems] = useState(initialItems);
   const [equipment, setEquipment] = useState(initialEquipment);
   const [reservations] = useState(initialReservations);
-  const [tab, setTab] = useState<"items" | "reservations">("items");
+  const [tab, setTab] = useState<"items" | "reservations" | "finance">("reservations");
 
   const [newItemName, setNewItemName] = useState("");
   const [newItemStock, setNewItemStock] = useState(1);
@@ -113,17 +114,23 @@ export default function AnnexeManager({
   return (
     <div>
       <Link href="/dashboard/annexes" className="inline-flex items-center gap-1 text-xs font-semibold text-[#5B6B80] hover:text-[#2473BA] mb-4">
-        ← Toutes les annexes
+        ← Toutes les rubriques
       </Link>
       <div className="mb-6 flex items-center gap-3">
         <span className="text-3xl">{annexe.icon}</span>
         <div>
-          <div className="text-xs text-[#5B6B80] font-mono">Annexe {annexe.slot_number}</div>
+          <div className="text-xs text-[#5B6B80] font-mono">Rubrique {annexe.slot_number}</div>
           <h1 className="font-black text-xl text-[#1A2B4B]">{annexe.label.toUpperCase()}</h1>
         </div>
       </div>
 
       <nav className="flex gap-1 p-1 rounded-xl bg-white border border-[#DCE3EA] w-fit mb-6">
+        <button
+          onClick={() => setTab("reservations")}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold ${tab === "reservations" ? "bg-[#1A2B4B] text-white" : "text-[#5B6B80]"}`}
+        >
+          Réservations
+        </button>
         <button
           onClick={() => setTab("items")}
           className={`px-4 py-2 rounded-lg text-sm font-semibold ${tab === "items" ? "bg-[#1A2B4B] text-white" : "text-[#5B6B80]"}`}
@@ -131,10 +138,10 @@ export default function AnnexeManager({
           Articles &amp; tarifs
         </button>
         <button
-          onClick={() => setTab("reservations")}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold ${tab === "reservations" ? "bg-[#1A2B4B] text-white" : "text-[#5B6B80]"}`}
+          onClick={() => setTab("finance")}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold ${tab === "finance" ? "bg-[#1A2B4B] text-white" : "text-[#5B6B80]"}`}
         >
-          Réservations
+          Finance
         </button>
       </nav>
 
@@ -189,6 +196,10 @@ export default function AnnexeManager({
           reservations={reservations}
           onCreated={() => router.refresh()}
         />
+      )}
+
+      {tab === "finance" && (
+        <FinanceCharts reservations={reservations.map((r) => ({ start_date: r.start_date, total: r.total }))} />
       )}
     </div>
   );
@@ -590,7 +601,10 @@ function ReservationsPanel({
         </button>
       </div>
 
-      <div className="md:col-span-3 space-y-3">
+      <div className="md:col-span-3 space-y-6">
+        <WeekAheadView reservations={localReservations} />
+
+        <div className="space-y-3">
         <div className="font-black text-sm text-[#1A2B4B]">RÉSERVATIONS ({localReservations.length})</div>
         {localReservations.length === 0 && (
           <div className="bg-white border border-[#DCE3EA] rounded-xl p-6 text-center text-sm text-[#5B6B80]">
@@ -644,6 +658,49 @@ function ReservationsPanel({
             </div>
           )
         )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WeekAheadView({ reservations }: { reservations: Reservation[] }) {
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    return d.toISOString().slice(0, 10);
+  });
+  const DAY_LABELS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
+
+  return (
+    <div>
+      <div className="font-black text-xs text-[#5B6B80] mb-3">7 PROCHAINS JOURS</div>
+      <div className="grid grid-cols-7 gap-2">
+        {days.map((day) => {
+          const dayReservations = reservations.filter((r) => r.start_date === day);
+          const d = new Date(day + "T00:00:00");
+          const isToday = day === new Date().toISOString().slice(0, 10);
+          return (
+            <div
+              key={day}
+              className={`rounded-lg p-2 min-h-[90px] border ${isToday ? "border-[#2473BA] bg-[#E4EFF9]" : "border-[#DCE3EA] bg-white"}`}
+            >
+              <div className="text-[10px] font-semibold text-[#5B6B80] mb-1">
+                {DAY_LABELS[d.getDay()]} {d.getDate()}
+              </div>
+              <div className="space-y-1">
+                {dayReservations.slice(0, 3).map((r) => (
+                  <div key={r.id} className="text-[10px] bg-[#F4F7FA] rounded px-1.5 py-1 truncate" title={r.client_name}>
+                    {r.client_name}
+                  </div>
+                ))}
+                {dayReservations.length > 3 && (
+                  <div className="text-[10px] text-[#5B6B80]">+{dayReservations.length - 3}</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

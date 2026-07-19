@@ -70,7 +70,11 @@ export default async function HomeDashboard() {
                 </div>
               )}
               {reservationsToday?.map((r) => (
-                <div key={r.id} className="bg-white border border-[#DCE3EA] rounded-xl p-4 flex items-center justify-between">
+                <Link
+                  key={r.id}
+                  href={`/dashboard/annexe/${r.annexe_id}`}
+                  className="bg-white border border-[#DCE3EA] rounded-xl p-4 flex items-center justify-between hover:border-[#2473BA] transition-colors"
+                >
                   <div className="flex items-center gap-3">
                     <span className="text-xl">{(r.annexes as unknown as { icon: string } | null)?.icon ?? "📦"}</span>
                     <div>
@@ -79,7 +83,7 @@ export default async function HomeDashboard() {
                     </div>
                   </div>
                   <div className="font-mono text-sm">{fmtEUR(Number(r.total))}</div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -94,7 +98,7 @@ export default async function HomeDashboard() {
 
         {/* Barre latérale : accès rapide aux annexes */}
         <div>
-          <div className="font-black text-xs text-[#5B6B80] mb-3">ANNEXES</div>
+          <div className="font-black text-xs text-[#5B6B80] mb-3">RUBRIQUES</div>
           <div className="space-y-2">
             {annexes?.map((a) => (
               <Link
@@ -110,7 +114,7 @@ export default async function HomeDashboard() {
               href="/dashboard/annexes"
               className="border-2 border-dashed border-[#DCE3EA] rounded-xl px-4 py-3 flex items-center justify-center text-sm font-semibold text-[#5B6B80] hover:border-[#2473BA] hover:text-[#2473BA]"
             >
-              Gérer les annexes →
+              Gérer les rubriques →
             </Link>
           </div>
         </div>

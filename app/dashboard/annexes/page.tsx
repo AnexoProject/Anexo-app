@@ -19,9 +19,9 @@ export default async function AnnexesPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-black text-xl text-[#1A2B4B]">VOS ANNEXES</h1>
+        <h1 className="font-black text-xl text-[#1A2B4B]">VOS RUBRIQUES</h1>
         <p className="text-sm text-[#5B6B80] mt-1">
-          Chaque annexe est un module indépendant que vous configurez et renommez selon votre activité.
+          Chaque rubrique est un module indépendant que vous configurez et renommez selon votre activité.
         </p>
       </div>
       <AnnexeGrid initialAnnexes={annexes ?? []} initialTrashed={trashedAnnexes ?? []} />
