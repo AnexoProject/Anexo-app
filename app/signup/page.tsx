@@ -61,15 +61,19 @@ export default function SignupPage() {
 
     const userId = signUpData.user.id;
 
-    // Crée l'établissement (le "tenant")
-    const { data: establishment, error: estError } = await supabase
-      .from("establishments")
-      .insert({ name: form.establishmentName, slug: slugify(form.establishmentName) })
-      .select()
-      .single();
+    // On génère l'identifiant nous-mêmes plutôt que de le laisser à Postgres,
+    // pour éviter de devoir "relire" la ligne juste après l'avoir créée (ce qui
+    // échouait : à cet instant précis, le profil qui autorise cette relecture
+    // n'existe pas encore — un problème d'ordre classique en base de données).
+    const establishmentId = crypto.randomUUID();
+    const { error: estError } = await supabase.from("establishments").insert({
+      id: establishmentId,
+      name: form.establishmentName,
+      slug: slugify(form.establishmentName),
+    });
 
-    if (estError || !establishment) {
-      setError("Compte créé, mais l'établissement n'a pas pu être enregistré : " + estError?.message);
+    if (estError) {
+      setError("Compte créé, mais l'établissement n'a pas pu être enregistré : " + estError.message);
       setLoading(false);
       return;
     }
@@ -77,7 +81,7 @@ export default function SignupPage() {
     // Lie le profil utilisateur à l'établissement, en tant que propriétaire
     const { error: profileError } = await supabase.from("profiles").insert({
       id: userId,
-      establishment_id: establishment.id,
+      establishment_id: establishmentId,
       full_name: form.fullName,
       role: "owner",
     });
