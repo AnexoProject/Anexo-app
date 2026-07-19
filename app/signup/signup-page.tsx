@@ -37,6 +37,28 @@ export default function SignupPage() {
       return;
     }
 
+    // Sur certains projets Supabase, signUp() ne renvoie pas toujours une session
+    // active immédiatement même avec la confirmation email désactivée. On force
+    // une connexion explicite pour être certain d'avoir une session valide avant
+    // d'insérer des données protégées par la sécurité au niveau des lignes (RLS).
+    let session = signUpData.session;
+    if (!session) {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.password,
+      });
+      if (signInError || !signInData.session) {
+        setError(
+          "Compte créé, mais la connexion automatique a échoué (" +
+            (signInError?.message || "session manquante") +
+            "). Essayez de vous connecter manuellement avec le lien ci-dessous."
+        );
+        setLoading(false);
+        return;
+      }
+      session = signInData.session;
+    }
+
     const userId = signUpData.user.id;
 
     // Crée l'établissement (le "tenant")
