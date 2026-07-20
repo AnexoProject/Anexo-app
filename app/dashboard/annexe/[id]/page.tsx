@@ -6,6 +6,12 @@ export default async function AnnexeDetailPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user!.id).single();
+  const isOwner = profile?.role === "owner";
+
   const { data: annexe } = await supabase.from("annexes").select("*").eq("id", id).is("deleted_at", null).single();
   if (!annexe) notFound();
 
@@ -36,6 +42,7 @@ export default async function AnnexeDetailPage({ params }: { params: Promise<{ i
       initialItems={items ?? []}
       initialEquipment={equipment ?? []}
       initialReservations={reservations ?? []}
+      isOwner={isOwner}
     />
   );
 }

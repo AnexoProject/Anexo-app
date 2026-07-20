@@ -13,11 +13,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, establishments(name)")
+    .select("full_name, role, establishments(name)")
     .eq("id", user.id)
     .single();
 
   const establishmentName = (profile?.establishments as unknown as { name: string } | null)?.name ?? "";
+  const isOwner = profile?.role === "owner";
 
   return (
     <div className="min-h-screen bg-[#F4F7FA]">
@@ -41,12 +42,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Link href="/dashboard/menage" className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white hover:bg-white/10">
               Ménage
             </Link>
-            <Link href="/dashboard/finance" className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white hover:bg-white/10">
-              Finance
-            </Link>
-            <Link href="/dashboard/equipe" className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white hover:bg-white/10">
-              Équipe
-            </Link>
+            {isOwner && (
+              <>
+                <Link href="/dashboard/finance" className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white hover:bg-white/10">
+                  Finance
+                </Link>
+                <Link href="/dashboard/equipe" className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white hover:bg-white/10">
+                  Équipe
+                </Link>
+              </>
+            )}
           </nav>
           <div className="flex items-center gap-4">
             <span className="text-xs text-[#AEB9CC]">{profile?.full_name}</span>

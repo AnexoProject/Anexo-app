@@ -47,11 +47,13 @@ export default function AnnexeManager({
   initialItems,
   initialEquipment,
   initialReservations,
+  isOwner,
 }: {
   annexe: Annexe;
   initialItems: Item[];
   initialEquipment: Equipment[];
   initialReservations: Reservation[];
+  isOwner: boolean;
 }) {
   const supabase = createClient();
   const router = useRouter();
@@ -141,12 +143,14 @@ export default function AnnexeManager({
         >
           Articles &amp; tarifs
         </button>
-        <button
-          onClick={() => setTab("finance")}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold ${tab === "finance" ? "bg-[#1A2B4B] text-white" : "text-[#5B6B80]"}`}
-        >
-          Finance
-        </button>
+        {isOwner && (
+          <button
+            onClick={() => setTab("finance")}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold ${tab === "finance" ? "bg-[#1A2B4B] text-white" : "text-[#5B6B80]"}`}
+          >
+            Finance
+          </button>
+        )}
       </nav>
 
       {tab === "items" && (
@@ -202,7 +206,7 @@ export default function AnnexeManager({
         />
       )}
 
-      {tab === "finance" && (
+      {tab === "finance" && isOwner && (
         <FinanceCharts reservations={reservations.map((r) => ({ start_date: r.start_date, total: r.total }))} />
       )}
     </div>

@@ -1,8 +1,15 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import FinanceCharts from "./finance-charts";
 
 export default async function FinancePage() {
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user!.id).single();
+  if (profile?.role !== "owner") redirect("/dashboard");
 
   const { data: reservations } = await supabase
     .from("reservations")

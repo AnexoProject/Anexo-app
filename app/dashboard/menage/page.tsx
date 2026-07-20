@@ -10,13 +10,13 @@ export default async function MenagePage() {
     .order("created_at", { ascending: true });
 
   const today = new Date().toISOString().slice(0, 10);
-  const twoWeeksOut = new Date(Date.now() + 13 * 86400000).toISOString().slice(0, 10);
+  const weekOut = new Date(Date.now() + 6 * 86400000).toISOString().slice(0, 10);
 
   const { data: tasks } = await supabase
     .from("cleaning_tasks")
     .select("*, staff_members(name)")
     .gte("task_date", today)
-    .lte("task_date", twoWeeksOut)
+    .lte("task_date", weekOut)
     .order("task_date", { ascending: true })
     .order("start_time", { ascending: true });
 
