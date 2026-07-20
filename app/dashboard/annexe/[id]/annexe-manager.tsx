@@ -11,6 +11,8 @@ type Item = { id: string; annexe_id: string; name: string; stock: number; annexe
 type Equipment = { id: string; annexe_id: string; name: string; fee: number; stock: number };
 type ReservationLine = {
   id: string;
+  item_id: string;
+  plan_id: string;
   qty: number;
   duration: number;
   line_total: number;
@@ -393,6 +395,43 @@ function ReservationsPanel({
     return item?.annexe_item_plans.find((p) => p.id === planId) || null;
   }
 
+  // --- Disponibilité : combien d'unités d'un article sont déjà prises sur une période donnée ---
+  function blockDaysForUnit(unit: string, duration: number) {
+    const d = Math.max(1, duration || 1);
+    if (unit === "semaine") return d * 7;
+    if (unit === "jour") return d;
+    return 1; // heure / demi-journée : occupe seulement le jour même
+  }
+  function addDays(dateStr: string, n: number) {
+    const d = new Date(dateStr + "T00:00:00");
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0, 10);
+  }
+  function usedQtyForItem(itemId: string, requestDate: string, requestBlockDays: number, excludeReservationId?: string) {
+    const reqEnd = addDays(requestDate, requestBlockDays - 1);
+    let used = 0;
+    localReservations.forEach((r) => {
+      if (r.status === "terminee") return; // une réservation terminée libère le stock
+      if (r.id === excludeReservationId) return;
+      r.reservation_lines.forEach((line) => {
+        if (line.item_id !== itemId) return;
+        const lineUnit = line.annexe_item_plans?.unit ?? "jour";
+        const lineBlockDays = blockDaysForUnit(lineUnit, line.duration);
+        const lineEnd = addDays(r.start_date, lineBlockDays - 1);
+        if (r.start_date <= reqEnd && lineEnd >= requestDate) used += line.qty;
+      });
+    });
+    return used;
+  }
+  function remainingForLine(itemId: string, planId: string, duration: number) {
+    const item = items.find((i) => i.id === itemId);
+    const plan = planFor(itemId, planId);
+    if (!item || !plan) return 0;
+    const blockDays = blockDaysForUnit(plan.unit, duration);
+    const used = usedQtyForItem(itemId, startDate, blockDays);
+    return item.stock - used;
+  }
+
   const itemsTotal = cart.reduce((sum, line) => {
     const plan = planFor(line.itemId, line.planId);
     return sum + (plan ? plan.price * line.qty * line.duration : 0);
@@ -407,6 +446,16 @@ function ReservationsPanel({
     setError("");
     if (!clientName.trim()) return setError("Indique le nom du client.");
     if (cart.length === 0) return setError("Ajoute au moins un article à la réservation.");
+
+    for (const line of cart) {
+      const item = items.find((i) => i.id === line.itemId);
+      const remaining = remainingForLine(line.itemId, line.planId, line.duration);
+      if (line.qty > remaining) {
+        return setError(
+          `Stock insuffisant pour "${item?.name}" sur ces dates : ${remaining} disponible(s), ${line.qty} demandé(s).`
+        );
+      }
+    }
 
     setSaving(true);
     const { data: annexeRow } = await supabase.from("annexes").select("establishment_id").eq("id", annexeId).single();
@@ -532,6 +581,8 @@ function ReservationsPanel({
           {cart.map((line, idx) => {
             const item = items.find((i) => i.id === line.itemId);
             const plan = planFor(line.itemId, line.planId);
+            const remaining = remainingForLine(line.itemId, line.planId, line.duration);
+            const insufficient = line.qty > remaining;
             return (
               <div key={idx} className="bg-[#F4F7FA] rounded-lg p-2.5 space-y-2">
                 <div className="flex gap-2">
@@ -549,6 +600,10 @@ function ReservationsPanel({
                   </select>
                   <button onClick={() => removeLine(idx)} className="text-[#C0392B] text-xs px-1">✕</button>
                 </div>
+                <div className="text-[10px] font-semibold" style={{ color: insufficient ? "#C0392B" : "#5B6B80" }}>
+                  {remaining} disponible{remaining > 1 ? "s" : ""} sur ces dates
+                  {insufficient && " — quantité trop élevée"}
+                </div>
                 <div>
                   <label className="block text-[10px] font-semibold text-[#5B6B80] mb-1">Formule tarifaire</label>
                   <select
@@ -564,7 +619,14 @@ function ReservationsPanel({
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <label className="block text-[10px] font-semibold text-[#5B6B80] mb-1">Quantité</label>
-                    <input type="number" min={1} value={line.qty} onChange={(e) => updateLine(idx, { qty: Number(e.target.value) })} className="w-full px-2 py-1.5 border border-[#DCE3EA] rounded text-xs text-center" />
+                    <input
+                      type="number"
+                      min={1}
+                      value={line.qty}
+                      onChange={(e) => updateLine(idx, { qty: Number(e.target.value) })}
+                      className="w-full px-2 py-1.5 border rounded text-xs text-center"
+                      style={{ borderColor: insufficient ? "#C0392B" : "#DCE3EA" }}
+                    />
                   </div>
                   <div className="flex-1">
                     <label className="block text-[10px] font-semibold text-[#5B6B80] mb-1">

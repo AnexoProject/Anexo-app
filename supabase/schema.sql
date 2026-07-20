@@ -147,6 +147,20 @@ create table cleaning_tasks (
   created_at timestamptz not null default now()
 );
 
+-- ----------------------------------------------------------------------------
+-- 9. INVITATIONS MULTI-UTILISATEURS
+-- ----------------------------------------------------------------------------
+create table establishment_invites (
+  id uuid primary key default gen_random_uuid(),
+  establishment_id uuid not null references establishments(id) on delete cascade,
+  email text not null,
+  role text not null default 'staff' check (role in ('owner', 'staff')),
+  invited_by uuid references profiles(id),
+  accepted_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (establishment_id, email)
+);
+
 -- ============================================================================
 -- SÉCURITÉ : Row Level Security — chaque établissement ne voit que ses données
 -- ============================================================================
@@ -161,6 +175,7 @@ alter table annexe_equipment enable row level security;
 alter table reservation_equipment_lines enable row level security;
 alter table staff_members enable row level security;
 alter table cleaning_tasks enable row level security;
+alter table establishment_invites enable row level security;
 
 create policy "own establishment" on establishments
   for select using (id = public.current_establishment_id());
@@ -214,6 +229,13 @@ create policy "tenant isolation - staff" on staff_members
 
 create policy "tenant isolation - cleaning tasks" on cleaning_tasks
   for all using (establishment_id = public.current_establishment_id());
+
+create policy "members manage invites" on establishment_invites
+  for all using (establishment_id = public.current_establishment_id());
+create policy "invited user can see own invite" on establishment_invites
+  for select using (email = auth.jwt() ->> 'email');
+create policy "invited user can accept own invite" on establishment_invites
+  for update using (email = auth.jwt() ->> 'email');
 
 -- ============================================================================
 -- FIN DU SCHÉMA

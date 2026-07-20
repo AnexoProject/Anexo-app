@@ -28,7 +28,7 @@ export default async function AnnexeDetailPage({ params }: { params: Promise<{ i
     )
     .eq("annexe_id", id)
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(300);
 
   return (
     <AnnexeManager

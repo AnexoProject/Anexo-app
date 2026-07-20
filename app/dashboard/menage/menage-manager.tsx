@@ -120,13 +120,13 @@ export default function MenageManager({ initialStaff, initialTasks }: { initialS
           onClick={() => setShowStaffPanel((s) => !s)}
           className="text-xs font-semibold text-[#5B6B80] hover:text-[#2473BA] bg-white border border-[#DCE3EA] rounded-lg px-3 py-2"
         >
-          👥 Équipe ({staff.filter((s) => s.active).length})
+          👥 Salariés ménage ({staff.filter((s) => s.active).length})
         </button>
       </div>
 
       {showStaffPanel && (
         <div className="bg-white border border-[#DCE3EA] rounded-xl p-4 mb-6">
-          <div className="font-black text-xs text-[#5B6B80] mb-3">ÉQUIPE MÉNAGE</div>
+          <div className="font-black text-xs text-[#5B6B80] mb-3">SALARIÉS MÉNAGE</div>
           <div className="flex flex-wrap gap-2 mb-3">
             {staff.map((s) => (
               <span key={s.id} className="text-sm bg-[#F4F7FA] px-3 py-1.5 rounded-lg flex items-center gap-2">

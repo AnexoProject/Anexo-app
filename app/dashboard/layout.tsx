@@ -44,6 +44,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Link href="/dashboard/finance" className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white hover:bg-white/10">
               Finance
             </Link>
+            <Link href="/dashboard/equipe" className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white hover:bg-white/10">
+              Équipe
+            </Link>
           </nav>
           <div className="flex items-center gap-4">
             <span className="text-xs text-[#AEB9CC]">{profile?.full_name}</span>

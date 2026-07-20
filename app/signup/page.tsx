@@ -61,6 +61,40 @@ export default function SignupPage() {
 
     const userId = signUpData.user.id;
 
+    // Est-ce que cet email correspond à une invitation en attente ?
+    const { data: invite } = await supabase
+      .from("establishment_invites")
+      .select("id, establishment_id, role")
+      .eq("email", form.email.trim().toLowerCase())
+      .is("accepted_at", null)
+      .maybeSingle();
+
+    if (invite) {
+      // On rejoint l'établissement existant plutôt que d'en créer un nouveau.
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: userId,
+        establishment_id: invite.establishment_id,
+        full_name: form.fullName,
+        role: invite.role,
+      });
+      if (profileError) {
+        setError("Compte créé, mais impossible de rejoindre l'établissement : " + profileError.message);
+        setLoading(false);
+        return;
+      }
+      await supabase.from("establishment_invites").update({ accepted_at: new Date().toISOString() }).eq("id", invite.id);
+      setLoading(false);
+      router.push("/dashboard");
+      router.refresh();
+      return;
+    }
+
+    if (!form.establishmentName.trim()) {
+      setError("Indique le nom de ton établissement (ou vérifie que ton invitation a bien été envoyée à cet email).");
+      setLoading(false);
+      return;
+    }
+
     // On génère l'identifiant nous-mêmes plutôt que de le laisser à Postgres,
     // pour éviter de devoir "relire" la ligne juste après l'avoir créée (ce qui
     // échouait : à cet instant précis, le profil qui autorise cette relecture
@@ -119,14 +153,16 @@ export default function SignupPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#5B6B80] mb-1">Nom de l'établissement</label>
+            <label className="block text-xs font-semibold text-[#5B6B80] mb-1">Nom de l&apos;établissement</label>
             <input
-              required
               value={form.establishmentName}
               onChange={(e) => setForm((f) => ({ ...f, establishmentName: e.target.value }))}
               className="w-full px-3 py-2 border border-[#DCE3EA] rounded-lg text-sm outline-none focus:border-[#2473BA]"
               placeholder="Camping Les Mouettes"
             />
+            <p className="text-[11px] text-[#5B6B80] mt-1">
+              Laisse vide si tu rejoins une équipe existante suite à une invitation.
+            </p>
           </div>
           <div>
             <label className="block text-xs font-semibold text-[#5B6B80] mb-1">Email</label>
